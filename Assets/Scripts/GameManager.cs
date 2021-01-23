@@ -2,26 +2,82 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameManager : MonoBehaviour
-{
+public class GameManager : MonoBehaviour {
     public GameObject slotPrefab;
     public GameObject slot1Prefab;
     public GameObject slot2Prefab;
     public GameObject slot3Prefab;
     public GameObject slot4Prefab;
+
+    public GameObject playerPiece;
+
     // Start is called before the first frame update
-    void Start()
-    {
+    void Start() {
+        CreateAllPathSlots();
+        CreatePlayerPieces();
+
+    }
+
+    void CreatePlayerPieces() {
+
+        Material darkGreen = Resources.Load("Materials/GreenDarkMat", typeof(Material)) as Material;
+        Material darkBlue = Resources.Load("Materials/BlueDarkMat", typeof(Material)) as Material;
+        Material darkRed = Resources.Load("Materials/RedDarkMat", typeof(Material)) as Material;
+        Material darkYellow = Resources.Load("Materials/YellowDarkMat", typeof(Material)) as Material;
+
+        float x, y, z;
+        y = 2f;
+        string pieceTxt = "Piece_";
+
+        x = -30;
+        z = -60;
+        for (int i = 1; i <= 4; i++, x -= 10) {
+            CreatePlayerPiece($"{pieceTxt}1{i}", new Vector3(x, y, z), darkGreen);
+        }
+        
+        x = -60;
+        z = 30;
+        for (int i = 1; i <= 4; i++, z += 10) {
+            CreatePlayerPiece($"{pieceTxt}2{i}", new Vector3(x, y, z), darkBlue);
+        }
+        
+        x = 30;
+        z = 60;
+        for (int i = 1; i <= 4; i++, x += 10) {
+            CreatePlayerPiece($"{pieceTxt}3{i}", new Vector3(x, y, z), darkRed);
+        }
+        
+        x = 60;
+        z = -30;
+        for (int i = 1; i <= 4; i++, z -= 10) {
+            CreatePlayerPiece($"{pieceTxt}4{i}", new Vector3(x, y, z), darkYellow);
+        }
+
+    }
+
+
+
+    private void CreatePlayerPiece(string name, Vector3 pos, Material mat) {
+        Transform parent = GameObject.Find("Pieces").transform;
+        GameObject newPiece = Instantiate(playerPiece, pos, transform.rotation, parent);
+        newPiece.GetComponent<Renderer>().material = mat;
+        newPiece.name = name;
+    }
+
+    void Update() {
+
+    }
+
+    void CreateSlot(GameObject prefab, Vector3 pos) {
+        Transform parent = GameObject.Find("Slots").transform;
+        GameObject newObject = Instantiate(prefab, pos, transform.rotation, parent);
+    }
+
+    void CreateAllPathSlots() {
         CreatePath1Slots();
         CreatePath2Slots();
         CreatePath3Slots();
         CreatePath4Slots();
-    }
-
-    void CreateSlot(GameObject prefab, Vector3 pos) {
-
-        GameObject newObject = Instantiate(prefab, pos, transform.rotation);
-        // newObject.transform.parent = GameObject.Find("Home").transform;
     }
 
     void CreatePath1Slots() {
@@ -49,7 +105,7 @@ public class GameManager : MonoBehaviour
             CreateSlot(slotPrefab, new Vector3(x, y, z - 10 * i));
         }
     }
-    
+
     void CreatePath2Slots() {
         float x, y, z;
         y = 0.5f;
@@ -74,7 +130,7 @@ public class GameManager : MonoBehaviour
             CreateSlot(slotPrefab, new Vector3(x - 10 * i, y, z));
         }
     }
-    
+
     void CreatePath3Slots() {
         float x, y, z;
         x = -10f;
@@ -100,7 +156,7 @@ public class GameManager : MonoBehaviour
             CreateSlot(slotPrefab, new Vector3(x, y, z + 10 * i));
         }
     }
-    
+
     void CreatePath4Slots() {
         float x, y, z;
         x = 20f;
@@ -127,9 +183,4 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
 }
