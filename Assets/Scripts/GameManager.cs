@@ -5,12 +5,32 @@ using UnityEngine;
 public class GameManager : MonoBehaviour {
     public GameObject slotPrefab;
 
-    public GameObject playerPiece;
+    public GameObject playerPiecePrefab;
 
-    // Start is called before the first frame update
+    public int lastDiceNum;
+
+    public List<PieceType> pieceTurn;
+
+    public int[,] path;
+
     void Start() {
+        pieceTurn = new List<PieceType>() { PieceType.P1, PieceType.P2, PieceType.P3, PieceType.P4 };
+        InitializePath();
         CreateAllPathSlots();
         CreatePlayerPieces();
+
+    }
+
+    void InitializePath() {
+        path = new int[Constants.MAX_PATHS, 2];
+        for (int i = 1; i <= 4; i++) {
+            for (int j = 1; j <= path.GetLength(0) / 4; j++) {
+                var index = (i - 1) * path.GetLength(0) / 4 + j - 1; // 0-51
+                path[index, 0] = i;
+                path[index, 1] = j;
+            }
+        }
+        
 
     }
 
@@ -51,13 +71,12 @@ public class GameManager : MonoBehaviour {
 
     }
 
-
-
     private void CreatePlayerPiece(string name, Vector3 pos, Material mat) {
         Transform parent = GameObject.Find("Pieces").transform;
-        GameObject newPiece = Instantiate(playerPiece, pos, transform.rotation, parent);
+        GameObject newPiece = Instantiate(playerPiecePrefab, pos, transform.rotation, parent);
         newPiece.GetComponent<Renderer>().material = mat;
         newPiece.name = name;
+        newPiece.AddComponent<PieceTapped>();
     }
 
     void Update() {
