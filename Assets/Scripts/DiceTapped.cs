@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class DiceTapped : MonoBehaviour {
     private GameManager gameManager;
@@ -17,8 +18,8 @@ public class DiceTapped : MonoBehaviour {
 
     void OnMouseDown() {
         
-            gameManager.lastDiceNum = Random.Range(1, 7);
-            print(gameManager.lastDiceNum);
+            gameManager.movesList.Add(Random.Range(1, 7));
+            print(gameManager.movesList.Last());
     }
 
 }

@@ -1,12 +1,19 @@
-﻿public class Slot {
-    public int[] loc { get; private set; }
-    private bool isHomeStop;
-    private bool isOtherStop;
-    private bool isEnd;
-    // private List<PlayerPiece> playerPieceList;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
-    public Slot(int[] loc, bool isHomeStop = false, bool isOtherStop = false, bool isEnd = false) {
-        this.loc = loc.Length != 2 ? new int[2] { -1, -1 } : loc;
+public class Slot {
+    // public int[] loc { get; private set; }
+    public Vector3 loc;
+    public bool isHomeStop;
+    public bool isOtherStop;
+    private bool isEnd;
+    private List<PlayerPiece> playerPieceList;
+
+    public int piecesCount => playerPieceList.Count;
+
+    public Slot(Vector3 loc, bool isHomeStop = false, bool isOtherStop = false, bool isEnd = false) {
+        this.loc = loc;
+        this.playerPieceList = new List<PlayerPiece>();
     }
 
     public bool isStop() {
