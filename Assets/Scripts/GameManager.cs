@@ -58,6 +58,7 @@ public class GameManager : MonoBehaviour {
     }
 
     public void MovePiece(PlayerPiece pp, Transform tr, int selectedMoveX = 0) {
+        if (pp.IsRunComplete()) return;
 
 
         int slotIndex = GetSlotIndex(pp.location);
@@ -123,16 +124,22 @@ public class GameManager : MonoBehaviour {
             var curPos = pp.location[1];
             var startingIndex = ((int)pp.pieceType - 1) * 5;
 
-            // slotIndex += selectedMove;
 
             var endLocation = selectedMove - (8 - curPos);
             var finalIndex = startingIndex + endLocation;
 
             pp.MoveForward(selectedMove);
-            endSlotList[finalIndex].AddPiece(pp);
-
-            var target = endSlotList[finalIndex].loc;
-            tr.Translate(target - tr.position);
+            if (curPos == 7 && endLocation == 5) {
+                startingIndex = ((int)pp.pieceType - 1) * 4;
+                finalIndex = startingIndex + finishedPieces.Where(x => x.pieceType == pp.pieceType).Count();
+                var target = winnerLocation[finalIndex];
+                finishedPieces.Add(pp);
+                tr.Translate(target - tr.position);
+            } else {
+                endSlotList[finalIndex].AddPiece(pp);
+                var target = endSlotList[finalIndex].loc;
+                tr.Translate(target - tr.position);
+            }
 
         } else {
             GetSlot(slotIndex).RemovePiece(pp);
