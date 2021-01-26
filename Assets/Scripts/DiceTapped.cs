@@ -11,15 +11,15 @@ public class DiceTapped : MonoBehaviour {
     }
 
     void Update() {
-        
+
         // if (Input.GetMouseButtonDown(0)) {
         // }
     }
 
     void OnMouseDown() {
-        
-            gameManager.movesList.Add(Random.Range(1, 7));
-            print(gameManager.movesList.Last());
+        var move = Random.Range(1, 7);
+        if (gameObject.name == "6Dice") move = 6;
+        gameManager.DiceRolled(move);
     }
 
 }

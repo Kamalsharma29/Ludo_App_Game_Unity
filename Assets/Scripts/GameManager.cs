@@ -6,47 +6,96 @@ using System.Linq;
 
 public class GameManager : MonoBehaviour {
     public GameObject slotPrefab;
-
+    public GameObject moveFacePrefab;
     public GameObject playerPiecePrefab;
-
+    public List<GameObject> moveFacesList;
     public List<int> movesList;
-
     public List<PieceType> pieceTurn;
-
-    public int[,] imaginaryPath;
     public List<Slot> slotList;
     public List<Slot> endSlotList;
     public List<PlayerPiece> playerPieces;
     public List<PlayerPiece> finishedPieces;
     public List<Vector3> winnerLocation;
-
-    public List<Vector3> homePosition;
-
-    [SerializeField]
-    public int selectedMove = 10;
+    private List<Vector3> homePosition;
+    private int numOfPlayers = 4;
+    public int selectedMove;
+    public int selectedMoveFaceGameObjectIndex;
+    public int[,] imaginaryPath;
 
     void Start() {
-        pieceTurn = new List<PieceType>() { PieceType.P1, PieceType.P2, PieceType.P3, PieceType.P4 };
+        pieceTurn = new List<PieceType>();
+        for (int i = 1; i <= numOfPlayers; i++) {
+            pieceTurn.Add((PieceType)i);
+        }
         slotList = new List<Slot>();
         endSlotList = new List<Slot>();
         homePosition = new List<Vector3>();
         finishedPieces = new List<PlayerPiece>();
-
+        moveFacesList = new List<GameObject>();
+        InitializeWinnerLocation();
 
         InitializeInThisOrder();
 
-        // var x = GameObject.Find("Piece_11");
-        // print(x.GetComponent<PieceTapped>().piece);
+
+    }
+
+    void Update() {
 
 
+    }
+
+    public void DiceRolled(int move) {
+        selectedMove = move;
+        movesList.Add(move);
+
+        var moveFacePos = new Vector3(-80, 0, -65 + (movesList.Count - 1) * 10);
+        var parent = GameObject.Find("MoveFaces").transform;
+        var newMoveFace = Instantiate(moveFacePrefab, moveFacePos, Quaternion.AngleAxis(90, Vector3.right), parent);
+        newMoveFace.name = $"MoveFace_{move}";
+        moveFacesList.Add(newMoveFace);
+    }
+
+    public void MoveFaceSelected(int move, GameObject go) {
+        if (selectedMoveFaceGameObjectIndex > -1)
+            moveFacesList[selectedMoveFaceGameObjectIndex].GetComponent<MoveFace>().selected = false;
+        selectedMove = move;
+        selectedMoveFaceGameObjectIndex = moveFacesList.IndexOf(go);
+    }
+
+    public void AfterMoveDone(int move) {
+        // remove from movesList
+        movesList.Remove(move);
+
+        // move all pieces down by z
+        for (int i = selectedMoveFaceGameObjectIndex + 1; i < moveFacesList.Count; i++) {
+            var cur = moveFacesList[i];
+            var moveDistanceZ = -10;
+            // cur.transform.Translate(new Vector3(0, 0, moveDistanceZ));
+            cur.transform.position = 
+                new Vector3(cur.transform.position.x, 
+                    cur.transform.position.y, 
+                    cur.transform.position.z + moveDistanceZ);
+        }
+        // destroy gameobject
+        Destroy(moveFacesList[selectedMoveFaceGameObjectIndex]);
+        // remove gameobject from list
+        moveFacesList.RemoveAt(selectedMoveFaceGameObjectIndex);
+        // select new move from bottom
+        selectedMoveFaceGameObjectIndex = movesList.Count() - 1;
+        // reset selectedMove
+        if (movesList.Count > 0)
+            selectedMove = moveFacesList[selectedMoveFaceGameObjectIndex].GetComponent<MoveFace>().move;
+    }
+
+    void InitializeWinnerLocation() {
         var y = 10f;
+        var space = 6;
         winnerLocation = new List<Vector3>(){
-            new Vector3(-10, y, -10),  new Vector3(0, y, -10),  new Vector3(10, y, -10),  new Vector3(0, y, -5),
-            new Vector3(-10, y, 10),  new Vector3(-10, y, 0),  new Vector3(-10, y, -10),  new Vector3(-5, y, 0),
-            new Vector3(10, y, 10),  new Vector3(0, y, 10),  new Vector3(-10, y, 10),  new Vector3(0, y, 5),
-            new Vector3(10, y, 10),  new Vector3(10, y, 0),  new Vector3(10, y, -10),  new Vector3(5, y, 0),
+            new Vector3(-space, y, -10),  new Vector3(0, y, -10),  new Vector3(space, y, -10),  new Vector3(0, y + 5, -6),
+            new Vector3(-10, y, space),  new Vector3(-10, y, 0),  new Vector3(-10, y, -space),  new Vector3(-6, y + 5, 0),
+            new Vector3(space, y, 10),  new Vector3(0, y, 10),  new Vector3(-space, y, 10),  new Vector3(0, y + 5, 6),
+            new Vector3(10, y, space),  new Vector3(10, y, 0),  new Vector3(10, y, -space),  new Vector3(6, y + 5, 0),
         };
-
     }
 
     void InitializeInThisOrder() {
@@ -57,12 +106,13 @@ public class GameManager : MonoBehaviour {
 
     }
 
-    public void MovePiece(PlayerPiece pp, Transform tr, int selectedMoveX = 0) {
+    public void MovePiece(PlayerPiece pp, Transform tr) {
         if (pp.IsRunComplete()) return;
 
 
         int slotIndex = GetSlotIndex(pp.location);
         if (pp.IsAtHome()) {
+            if (selectedMove != 6) return;
             Vector3 target = new Vector3(-1, -1, -1);
             switch (pp.pieceType) {
                 case PieceType.P1:
@@ -161,6 +211,8 @@ public class GameManager : MonoBehaviour {
                 }
             }
         }
+        AfterMoveDone(selectedMove);
+
     }
 
     public void KillPiece(PlayerPiece pp, int index) {
