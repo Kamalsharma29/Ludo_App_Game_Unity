@@ -22,7 +22,7 @@ public class PieceTapped : MonoBehaviour {
 
     void OnMouseDown() {
 
-        gameManager.MovePiece(piece, 1, transform);
+        gameManager.MovePiece(piece, transform);
     }
 
 }

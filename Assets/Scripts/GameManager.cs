@@ -16,13 +16,21 @@ public class GameManager : MonoBehaviour {
     public int[,] imaginaryPath;
     public List<Slot> slotList;
     public List<Slot> endSlotList;
+    public List<PlayerPiece> playerPieces;
+    public List<PlayerPiece> finishedPieces;
+    public List<Vector3> winnerLocation;
 
     public List<Vector3> homePosition;
+
+    [SerializeField]
+    public int selectedMove = 10;
+
     void Start() {
         pieceTurn = new List<PieceType>() { PieceType.P1, PieceType.P2, PieceType.P3, PieceType.P4 };
         slotList = new List<Slot>();
         endSlotList = new List<Slot>();
         homePosition = new List<Vector3>();
+        finishedPieces = new List<PlayerPiece>();
 
 
         InitializeInThisOrder();
@@ -31,6 +39,13 @@ public class GameManager : MonoBehaviour {
         // print(x.GetComponent<PieceTapped>().piece);
 
 
+        var y = 10f;
+        winnerLocation = new List<Vector3>(){
+            new Vector3(-10, y, -10),  new Vector3(0, y, -10),  new Vector3(10, y, -10),  new Vector3(0, y, -5),
+            new Vector3(-10, y, 10),  new Vector3(-10, y, 0),  new Vector3(-10, y, -10),  new Vector3(-5, y, 0),
+            new Vector3(10, y, 10),  new Vector3(0, y, 10),  new Vector3(-10, y, 10),  new Vector3(0, y, 5),
+            new Vector3(10, y, 10),  new Vector3(10, y, 0),  new Vector3(10, y, -10),  new Vector3(5, y, 0),
+        };
 
     }
 
@@ -39,57 +54,106 @@ public class GameManager : MonoBehaviour {
         InitializePath();
         CreateAllPathSlots();
         CreatePlayerPieces();
+
     }
 
-    public void MovePiece(PlayerPiece pp, int numToMove, Transform tr) {
+    public void MovePiece(PlayerPiece pp, Transform tr, int selectedMoveX = 0) {
 
 
-        int indexLoc = GetSlotIndex(pp.location);
-        if (pp.isAtHome()) {
+        int slotIndex = GetSlotIndex(pp.location);
+        if (pp.IsAtHome()) {
             Vector3 target = new Vector3(-1, -1, -1);
             switch (pp.pieceType) {
                 case PieceType.P1:
                     target = GameObject.Find("Slot_1:9").transform.position;
-                    indexLoc = 8;
+                    slotIndex = 8;
                     break;
                 case PieceType.P2:
                     target = GameObject.Find("Slot_2:9").transform.position;
-                    indexLoc = 21;
+                    slotIndex = 21;
                     break;
                 case PieceType.P3:
                     target = GameObject.Find("Slot_3:9").transform.position;
-                    indexLoc = 34;
+                    slotIndex = 34;
                     break;
                 case PieceType.P4:
                     target = GameObject.Find("Slot_4:9").transform.position;
-                    indexLoc = 47;
+                    slotIndex = 47;
                     break;
             }
-            pp.MoveForward(9); // Dont' change the 9. This is the initial imaginary loc.
-            slotList[indexLoc].AddPiece(pp);
+            var initialImaginaryLoc = 9; // Dont' change the 9. This is the initial imaginary loc.
+            pp.MoveForward(initialImaginaryLoc);
+            slotList[slotIndex].AddPiece(pp);
             tr.Translate(target - tr.position);
-        } else {
+        } else if (pp.IsAtEndColumn()) {
+            // slotIndex == -1
+            var curPos = pp.location[1];
+            if (curPos + selectedMove == Constants.WINNING_ID) { // win
+                var startingIndex = ((int)pp.pieceType - 1) * 5;
+                var finalIndex = startingIndex + curPos - 100;
+                endSlotList[finalIndex].RemovePiece(pp);
+                curPos += selectedMove;
+                finalIndex = startingIndex + curPos - 100;
 
-            slotList[indexLoc].RemovePiece(pp);
-            indexLoc += numToMove;
-            if (indexLoc > 51) {
-                indexLoc -= 52;
+                pp.MoveForward(selectedMove);
+                startingIndex = ((int)pp.pieceType - 1) * 4;
+                finalIndex = startingIndex + finishedPieces.Where(x => x.pieceType == pp.pieceType).Count();
+                var target = winnerLocation[finalIndex];
+                finishedPieces.Add(pp);
+                tr.Translate(target - tr.position);
+
+            } else if (curPos + selectedMove < Constants.WINNING_ID) { // move
+                var startingIndex = ((int)pp.pieceType - 1) * 5;
+                var finalIndex = startingIndex + curPos - 100;
+                endSlotList[finalIndex].RemovePiece(pp);
+                curPos += selectedMove;
+                finalIndex = startingIndex + curPos - 100;
+
+                pp.MoveForward(selectedMove);
+                endSlotList[finalIndex].AddPiece(pp);
+                var target = endSlotList[finalIndex].loc;
+                tr.Translate(target - tr.position);
+            } else { // indexLoc + selectedMove > Constants.WINNING_ID /// do nothing
+
+            }
+        } else if (pp.CanMoveToEndCol(selectedMove)) { // cant win on 6 from here
+            // remove old piece
+            GetSlot(slotIndex).RemovePiece(pp);
+
+            var curPos = pp.location[1];
+            var startingIndex = ((int)pp.pieceType - 1) * 5;
+
+            // slotIndex += selectedMove;
+
+            var endLocation = selectedMove - (8 - curPos);
+            var finalIndex = startingIndex + endLocation;
+
+            pp.MoveForward(selectedMove);
+            endSlotList[finalIndex].AddPiece(pp);
+
+            var target = endSlotList[finalIndex].loc;
+            tr.Translate(target - tr.position);
+
+        } else {
+            GetSlot(slotIndex).RemovePiece(pp);
+            slotIndex += selectedMove;
+            if (slotIndex > 51) {
+                slotIndex -= 52;
             }
 
-            pp.MoveForward(numToMove);
-            GetSlot(indexLoc).AddPiece(pp);
-            var target = GetSlot(indexLoc).loc;
+            pp.MoveForward(selectedMove);
+            GetSlot(slotIndex).AddPiece(pp);
+            var target = GetSlot(slotIndex).loc;
             tr.Translate(target - tr.position);
 
             // check to kill piece
-            if (!GetSlot(indexLoc).isStop()) {
-                var presentPiece = GetSlot(indexLoc).GetForeignPresent(pp.pieceType);
+            if (!GetSlot(slotIndex).isStop()) {
+                var presentPiece = GetSlot(slotIndex).GetForeignPresent(pp.pieceType);
                 if (presentPiece != null) {
-                    KillPiece(presentPiece, indexLoc);
+                    KillPiece(presentPiece, slotIndex);
                 }
             }
         }
-
     }
 
     public void KillPiece(PlayerPiece pp, int index) {
@@ -101,26 +165,17 @@ public class GameManager : MonoBehaviour {
         var tr = GameObject.Find($"Piece_{(int)pp.pieceType}{pp.pieceId}").transform;
 
         // find where the home position is
-        int homePositionIndex = 0;
-        switch (pp.pieceType) {
-            case PieceType.P1:
-                homePositionIndex = 0;
-                break;
-            case PieceType.P2:
-                homePositionIndex = 4;
-                break;
-            case PieceType.P3:
-                homePositionIndex = 8;
-                break;
-            case PieceType.P4:
-                homePositionIndex = 12;
-                break;
-        }
-        homePositionIndex += pp.pieceId - 1;
+        var homePositionIndex = GetHomePositionIndex(pp);
         var target = homePosition[homePositionIndex];
-
         // move piece home
         tr.Translate(target - tr.position);
+    }
+
+    // For initial pieces at home with loc = 0
+    public int GetHomePositionIndex(PlayerPiece pp) {
+        var homePositionIndex = ((int)pp.pieceType - 1) * 4;
+        homePositionIndex += pp.pieceId - 1;
+        return homePositionIndex;
     }
 
     public Slot GetSlot(int index) {
@@ -142,12 +197,8 @@ public class GameManager : MonoBehaviour {
                 }
             }
         }
-
         return -1;
     }
-
-
-
 
     void InitializePath() {
         imaginaryPath = new int[Constants.MAX_PATH, 2];
@@ -228,7 +279,10 @@ public class GameManager : MonoBehaviour {
             Slot normalSlot = new Slot(pos, slotText, isHomeStop, isOtherStop);
             slotList.Add(normalSlot);
         } else {
-            slotText += $"0:{index}";
+            // index = 304
+            var second = index % 100; // 4
+            var id = (index - second) / 100; // 3
+            slotText += $"{id}:{second + 100}";
             Slot endSlot = new Slot(pos, slotText, false, false, isEnd: true);
             endSlotList.Add(endSlot);
         }
@@ -297,7 +351,7 @@ public class GameManager : MonoBehaviour {
         y = 0.5f;
         z = -20f;
         CreateSlot(index, new Vector3(x, y, z - 50));
-        var middleIndex = 101;
+        var middleIndex = 100;
         for (int i = 4; i >= 0; i--) {
             float newX = x, newZ = z - 10 * i;
             // Slot slot = new Slot(new int[] { (int)newX, (int)newZ });
@@ -345,7 +399,7 @@ public class GameManager : MonoBehaviour {
         x = -20f;
         z = 0f;
         CreateSlot(index, new Vector3(x - 50, y, z));
-        var middleIndex = 201;
+        var middleIndex = 200;
         for (int i = 4; i >= 0; i--) {
             CreateSlot(middleIndex++, new Vector3(x - 10 * i, y, z), blue);
         }
@@ -386,7 +440,7 @@ public class GameManager : MonoBehaviour {
         y = 0.5f;
         z = 20f;
         CreateSlot(index, new Vector3(x, y, z + 50));
-        var middleIndex = 301;
+        var middleIndex = 300;
         for (int i = 4; i >= 0; i--) {
             CreateSlot(middleIndex++, new Vector3(x, y, z + 10 * i), red);
         }
@@ -429,7 +483,7 @@ public class GameManager : MonoBehaviour {
         y = 0.5f;
         z = 0f;
         CreateSlot(index, new Vector3(x + 50, y, z));
-        var middleIndex = 401;
+        var middleIndex = 400;
         for (int i = 4; i >= 0; i--) {
             CreateSlot(middleIndex++, new Vector3(x + 10 * i, y, z), yellow);
         }
